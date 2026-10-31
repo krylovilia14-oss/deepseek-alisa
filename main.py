@@ -1,6 +1,5 @@
-import os
+import httpx
 from fastapi import FastAPI, Request
-import requests
 
 app = FastAPI()
 
@@ -12,15 +11,17 @@ async def main(request: Request):
     body = await request.json()
     user_text = body["request"]["original_utterance"]
 
-    response = requests.post(
-        DEEPSEEK_API_URL,
-        headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
-        json={
-            "model": "deepseek-chat",
-            "messages": [{"role": "user", "content": user_text}],
-        }
-    )
-    answer = response.json()["choices"][0]["message"]["content"]
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            DEEPSEEK_API_URL,
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": user_text}],
+            },
+            timeout=4.0  # Важно: таймаут меньше 4.5 сек
+        )
+        answer = response.json()["choices"][0]["message"]["content"]
 
     return {
         "version": body["version"],
